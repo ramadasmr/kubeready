@@ -1,0 +1,234 @@
+#!/usr/bin/env bash
+set -e
+
+print_help_banner(){
+cat <<EOF
+Usage: kubeready [object] <options>
+
+Available Objects:
+  node, nodes                   	Check at nodes level
+  pod, pods                     	Check at pods level
+  dep, deploy, deployment      		Check at deployment level
+  sts, statefulset              	Check at statefulset level
+  ds, daemonset                 	Check at daemonset level
+
+  --dry                         	Dry run, to show commands without executing
+  -h, --help				        Show Help
+
+Options for pods,events,services :
+  -n, -ns, --namespace <namespace>	Specify the namespace to use
+EOF
+}
+
+found_wrong_command_args(){
+    print_help_banner
+    exit 2
+}
+
+init_variables(){
+    NAMESPACE=""
+    OBJECT=""
+    CMDOPTS=""
+    DRYRUN=""
+}
+
+parse_args(){
+if [[ "$#" -gt 0 ]]; then
+    while true
+    do
+    if [ -n "$1" ]; then
+        case $1 in
+        -n|-ns|--ns|--namespace)
+            shift
+            NAMESPACE=$1
+            if [[ -z $NAMESPACE || $OBJECT == "nodes" ]]; then
+                :
+            else
+                CMDOPTS="-n $NAMESPACE"
+            fi
+            shift
+            ;;
+        pod|pods)
+            if [[ -z "$OBJECT" ]]; then
+                OBJECT=pods
+            else
+                echo "ERROR: cannot use arguments multiple objects together"
+                found_wrong_command_args
+            fi
+            shift
+            if [[ "$1" == "-n" || "$1" == "--dry" || -z "$1" ]]; then
+                OBJECT_OPTS="$OBJECT"
+            else
+                OBJECTNAME="$1"
+                OBJECT_OPTS="$OBJECT $OBJECTNAME"
+                shift
+            fi
+            ;;
+        node|nodes)
+            if [ -z "$OBJECT" ]; then
+                OBJECT=nodes
+            else
+                echo "ERROR: cannot use arguments multiple objects together"
+                found_wrong_command_args
+            fi
+            shift
+            if [[ "$1" == "-n" || "$1" == "--dry" || -z "$1" ]]; then
+                OBJECT_OPTS="$OBJECT"
+            else
+                OBJECTNAME="$1"
+                OBJECT_OPTS="$OBJECT $OBJECTNAME"
+                shift
+            fi
+            ;;
+        dep|deploy|deployment)
+            if [ -z "$OBJECT" ]; then
+                OBJECT=deployment
+            else
+                echo "ERROR: cannot use arguments multiple objects together"
+                found_wrong_command_args
+            fi
+            shift
+            if [[ "$1" == "-n" || "$1" == "--dry" || -z "$1" ]]; then
+                OBJECT_OPTS="$OBJECT"
+            else
+                OBJECTNAME="$1"
+                OBJECT_OPTS="$OBJECT $OBJECTNAME"
+                shift
+            fi
+            ;;
+        sts|statefuleset)
+            if [ -z "$OBJECT" ]; then
+                OBJECT=statefulset
+            else
+                echo "ERROR: cannot use arguments multiple objects together"
+                found_wrong_command_args
+            fi
+            shift
+            if [[ "$1" == "-n" || "$1" == "--dry" || -z "$1" ]]; then
+                OBJECT_OPTS="$OBJECT"
+            else
+                OBJECTNAME="$1"
+                OBJECT_OPTS="$OBJECT $OBJECTNAME"
+                shift
+            fi
+            ;;
+        ds|daemonset)
+            if [ -z "$OBJECT" ]; then
+                OBJECT=daemonset
+            else
+                echo "ERROR: cannot use arguments multiple objects together"
+                found_wrong_command_args
+            fi
+            shift
+            if [[ "$1" == "-n" || "$1" == "--dry" || -z "$1" ]]; then
+                OBJECT_OPTS="$OBJECT"
+            else
+                OBJECTNAME="$1"
+                OBJECT_OPTS="$OBJECT $OBJECTNAME"
+                shift
+            fi
+            ;;
+        --dry)
+            DRYRUN=YES
+            shift
+            ;;
+        -h|--help)
+            print_help_banner
+            exit 0
+            ;;
+        *)
+            echo "Invalid option: $1"
+            found_wrong_command_args
+            ;;
+        esac
+    else
+        break
+    fi
+    done
+    VALID_OBJECTS=("pods" "nodes" "deployment" "statefulset" "daemonset")
+    if [[ ! " ${VALID_OBJECTS[*]} " =~ " ${OBJECT} " ]]; then
+        echo "MISSING: Specifiy a valid object type"
+        echo ""
+        found_wrong_command_args
+    fi
+else
+    found_wrong_command_args
+fi
+}
+
+check_for_issue_state(){
+    if [ "$OBJECT" == "nodes" ]; then
+        ISSUE_STATES=("NotReady" "Unknown" "SchedulingDisabled")
+    else
+        ISSUE_STATES=("Pending" "Succeeded" "Failed" "Unknown" "Error" "CrashLoopBackOff" "ImagePullBackOff" "ErrImagePull" "CreateContainerConfigError" "RunContainerError" "OOMKilled" "Completed" "ContainerCreating" "Terminating")
+    fi
+    for STATUS in "${ISSUE_STATES[@]}"; do
+        if [[ "$CMDOUTPUT" == *"$STATUS"* ]]; then
+            ISSUE_STATE_FOUND=YES
+            break
+        fi
+    done
+}
+
+get_pod_status(){
+        ERRFILE="/tmp/kubeready.err"
+        if [ "$OBJECT" == "pods" ]; then
+            CMDOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS  --no-headers 2> $ERRFILE | awk '{print $3}' | sort | uniq -c | tr '\n' ', ')
+        elif [ "$OBJECT" == "nodes" ]; then
+            CMDOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $2}'  | sort | uniq -c | tr '\n' ', ')
+        elif [ "$OBJECT" == "deployment" ]; then
+            DEPOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $1}')
+            if [ -n "$DEPOUTPUT" ]; then
+                CMDOUTPUT=$(kubectl get pods $CMDOPTS  --no-headers 2> $ERRFILE | egrep "$DEPOUTPUT" | awk '{print $3}' | sort | uniq -c | tr '\n' ', ')
+            fi
+        elif [ "$OBJECT" == "statefulset" ]; then
+            STSOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $1}')
+            if [ -n "$STSOUTPUT" ]; then
+                CMDOUTPUT=$(kubectl get pods $CMDOPTS  --no-headers 2> $ERRFILE | egrep "$STSOUTPUT" | awk '{print $3}' | sort | uniq -c | tr '\n' ', ')
+            fi
+        elif [ "$OBJECT" == "daemonset" ]; then
+            DSOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $1}')
+            if [ -n "$DSOUTPUT" ]; then
+                CMDOUTPUT=$(kubectl get pods $CMDOPTS  --no-headers 2> $ERRFILE | egrep "$DSOUTPUT" | awk '{print $3}' | sort | uniq -c | tr '\n' ', ')
+            fi
+        fi
+}
+
+check_workload_status(){
+    while true
+    do
+        get_pod_status
+        check_for_issue_state
+        if [[ "$ISSUE_STATE_FOUND" == "YES" ]]; then
+            echo "[`date`] Status: NOTREADY, $CMDOUTPUT"
+        elif [[ $(cat $ERRFILE | grep "[:alpha:]") ]]; then
+            echo "kubectl: $(cat $ERRFILE)"
+            exit 0
+        elif [[ "$CMDOUTPUT" == *found* ]]; then
+            echo "kubectl: No resources found in default namespace."
+            exit 0
+        else
+            echo "[`date`] Status: READY, $CMDOUTPUT"
+            exit 0
+        fi
+        sleep 5
+    done
+}
+
+execute_command(){
+    echo "Executing: kubeready $OBJECT_OPTS $CMDOPTS"
+    echo "Running: kubectl get $OBJECT_OPTS $CMDOPTS"
+    if [ "$DRYRUN" == "YES" ]; then
+        echo "DRY RUN: Skipping command execution"
+    else
+        check_workload_status
+    fi
+}
+
+
+#
+# Main
+#
+init_variables
+parse_args "$@"
+execute_command
