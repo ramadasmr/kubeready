@@ -6,11 +6,9 @@
 
 Whether you're a developer, SRE, or DevOps engineer, `kubeready` makes it easier to view health and status of Kubernetes objects — nodes, pods, deployments, statefulsets, and daemonsets — with automatic filtering of common problem states.
 
-## Why?
+## Why kubeready 
 
 `kubectl` requires complex flag combinations and manual filtering to monitor resource health effectively. `kubeready` consolidates these operations into a simple CLI to speed up checking cluster health and comes in handy for CI/CD workflows.
-
----
 
 #### ✨ Features
 
@@ -21,8 +19,6 @@ Whether you're a developer, SRE, or DevOps engineer, `kubeready` makes it easier
 - ⚙️ Dry-run mode to preview commands without execution
 - 📖 Simple, minimal, and intuitive CLI with helpful usage instructions
 - 🐚 Pure Bash script with zero dependencies beyond kubectl
-
----
 
 #### 📥 Installation
 
