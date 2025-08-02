@@ -30,6 +30,7 @@ init_variables(){
     OBJECT=""
     CMDOPTS=""
     DRYRUN=""
+    ONETIMELOG=0
 }
 
 parse_args(){
@@ -56,7 +57,7 @@ if [[ "$#" -gt 0 ]]; then
                 found_wrong_command_args
             fi
             shift
-            if [[ "$1" == "-n" || "$1" == "--dry" || -z "$1" ]]; then
+            if [[ "$1" == "-n" || "$1" == "--dry" || "$1" == "-h" || "$1" == "--help" || -z "$1" ]]; then
                 OBJECT_OPTS="$OBJECT"
             else
                 OBJECTNAME="$1"
@@ -72,7 +73,7 @@ if [[ "$#" -gt 0 ]]; then
                 found_wrong_command_args
             fi
             shift
-            if [[ "$1" == "-n" || "$1" == "--dry" || -z "$1" ]]; then
+            if [[ "$1" == "-n" || "$1" == "--dry" || "$1" == "-h" || "$1" == "--help" || -z "$1" ]]; then
                 OBJECT_OPTS="$OBJECT"
             else
                 OBJECTNAME="$1"
@@ -88,7 +89,7 @@ if [[ "$#" -gt 0 ]]; then
                 found_wrong_command_args
             fi
             shift
-            if [[ "$1" == "-n" || "$1" == "--dry" || -z "$1" ]]; then
+            if [[ "$1" == "-n" || "$1" == "--dry" || "$1" == "-h" || "$1" == "--help" || -z "$1" ]]; then
                 OBJECT_OPTS="$OBJECT"
             else
                 OBJECTNAME="$1"
@@ -104,7 +105,7 @@ if [[ "$#" -gt 0 ]]; then
                 found_wrong_command_args
             fi
             shift
-            if [[ "$1" == "-n" || "$1" == "--dry" || -z "$1" ]]; then
+            if [[ "$1" == "-n" || "$1" == "--dry" || "$1" == "-h" || "$1" == "--help" || -z "$1" ]]; then
                 OBJECT_OPTS="$OBJECT"
             else
                 OBJECTNAME="$1"
@@ -120,7 +121,7 @@ if [[ "$#" -gt 0 ]]; then
                 found_wrong_command_args
             fi
             shift
-            if [[ "$1" == "-n" || "$1" == "--dry" || -z "$1" ]]; then
+            if [[ "$1" == "-n" || "$1" == "--dry" || "$1" == "-h" || "$1" == "--help" || -z "$1" ]]; then
                 OBJECT_OPTS="$OBJECT"
             else
                 OBJECTNAME="$1"
@@ -172,23 +173,27 @@ check_for_issue_state(){
 
 get_pod_status(){
         ERRFILE="/tmp/kubeready.err"
+        [ $ONETIMELOG -lt 1 ] && echo "Executing: kubectl get $OBJECT_OPTS $CMDOPTS" && ONETIMELOG=1
         if [ "$OBJECT" == "pods" ]; then
             CMDOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS  --no-headers 2> $ERRFILE | awk '{print $3}' | sort | uniq -c | tr '\n' ', ')
         elif [ "$OBJECT" == "nodes" ]; then
             CMDOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $2}'  | sort | uniq -c | tr '\n' ', ')
         elif [ "$OBJECT" == "deployment" ]; then
-            DEPOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $1}')
+            [ -z "$DEPOUTPUT" ] && DEPOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $1}')
             if [ -n "$DEPOUTPUT" ]; then
+                [ $ONETIMELOG -lt 2 ] && echo "Executing: kubectl get pods $CMDOPTS for deployment.apps/$DEPOUTPUT" && ONETIMELOG=2
                 CMDOUTPUT=$(kubectl get pods $CMDOPTS  --no-headers 2> $ERRFILE | egrep "$DEPOUTPUT" | awk '{print $3}' | sort | uniq -c | tr '\n' ', ')
             fi
         elif [ "$OBJECT" == "statefulset" ]; then
-            STSOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $1}')
+            [ -z "$STSOUTPUT" ] && STSOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $1}')
             if [ -n "$STSOUTPUT" ]; then
+                [ $ONETIMELOG -lt 2 ] && echo "Executing: kubectl get pods $CMDOPTS for statefulset.apps/$STSOUTPUT" && ONETIMELOG=2
                 CMDOUTPUT=$(kubectl get pods $CMDOPTS  --no-headers 2> $ERRFILE | egrep "$STSOUTPUT" | awk '{print $3}' | sort | uniq -c | tr '\n' ', ')
             fi
         elif [ "$OBJECT" == "daemonset" ]; then
-            DSOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $1}')
+            [ -z "$DSOUTPUT" ] && DSOUTPUT=$(kubectl get $OBJECT_OPTS $CMDOPTS --no-headers 2> $ERRFILE | awk '{print $1}')
             if [ -n "$DSOUTPUT" ]; then
+                [ $ONETIMELOG -lt 2 ] && echo "Executing: kubectl get pods $CMDOPTS for daemonset.apps/$DSOUTPUT" && ONETIMELOG=2
                 CMDOUTPUT=$(kubectl get pods $CMDOPTS  --no-headers 2> $ERRFILE | egrep "$DSOUTPUT" | awk '{print $3}' | sort | uniq -c | tr '\n' ', ')
             fi
         fi
@@ -205,7 +210,7 @@ check_workload_status(){
             echo "kubectl: $(cat $ERRFILE)"
             exit 0
         elif [[ "$CMDOUTPUT" == *found* ]]; then
-            echo "kubectl: No resources found in default namespace."
+            echo "kubectl: No resources found in this namespace."
             exit 0
         else
             echo "[`date`] Status: READY, $CMDOUTPUT"
@@ -216,8 +221,7 @@ check_workload_status(){
 }
 
 execute_command(){
-    echo "Executing: kubeready $OBJECT_OPTS $CMDOPTS"
-    echo "Running: kubectl get $OBJECT_OPTS $CMDOPTS"
+    echo "Running: kubeready $OBJECT_OPTS $CMDOPTS"
     if [ "$DRYRUN" == "YES" ]; then
         echo "DRY RUN: Skipping command execution"
     else
