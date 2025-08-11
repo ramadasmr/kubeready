@@ -1,5 +1,5 @@
 # .github/workflows/ci.yml
-name: CI for kubesort using shellcheck and BATS
+name: CI for kubeready using shellcheck and BATS
 
 on:
   push:
