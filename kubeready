@@ -13,7 +13,7 @@ Available Objects:
   ds, daemonset                 	Check at daemonset level
 
   --dry                         	Dry run, to show commands without executing
-  -h, --help				        Show Help
+  -h, --help                            Show Help
 
 Options for pods,events,services :
   -n, -ns, --namespace <namespace>	Specify the namespace to use
