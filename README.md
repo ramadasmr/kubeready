@@ -77,12 +77,12 @@ kubeready [object] <options>
 #### ✅ Examples
 
 ```bash
-./kubeready pods
-./kubeready pods nginx
-./kubeready nodes
-./kubeready deployment myapp -n production
-./kubeready daemonset -n kube-system --dry
-./kubeready --help
+kubeready pods
+kubeready pods nginx
+kubeready nodes
+kubeready deployment myapp -n production
+kubeready daemonset -n kube-system --dry
+kubeready --help
 ```
 
 #### 📄 License
