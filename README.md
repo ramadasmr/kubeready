@@ -1,5 +1,8 @@
 # kubeready
-![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) ![Shell](https://img.shields.io/badge/Made%20with-Bash-orange.svg) ![CI](https://img.shields.io/badge/CI-GitHub%20Actions-blueviolet) ![Unit Tests](https://img.shields.io/badge/Unit%20Tests-GitHub%20Actions-blueviolet) ![CI Status](https://github.com/ramadasmr/kubeready/actions/workflows/ci.yaml/badge.svg?branch=main) ![GitHub Stars](https://img.shields.io/github/stars/ramadasmr/kubeready?style=social)
+
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) ![Shell](https://img.shields.io/badge/Made%20with-Bash-red.svg) ![Kubernetes](https://img.shields.io/badge/Made%20for-Kubernetes-blue.svg) ![CI](https://img.shields.io/badge/CI-GitHub%20Actions-blueviolet) ![Unit Tests](https://img.shields.io/badge/Unit%20Tests-shellcheck%20and%20BATS-blueviolet) ![CI Status](https://github.com/ramadasmr/kubeready/actions/workflows/ci.yaml/badge.svg?branch=main)
+
+![GitHub Stars](https://img.shields.io/github/stars/ramadasmr/kubeready?style=social) ![GitHub Forks](https://img.shields.io/github/forks/ramadasmr/kubeready?style=social)
 
 
 **kubeready** is a lightweight Bash utility that simplifies and extends `kubectl` commands by enabling flexible status checking of Kubernetes resources. It wraps multiple common kubectl commands along with parsing done in bash into a single intuitive CLI, focused on quickly showing resource readiness and issues.
