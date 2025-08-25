@@ -18,3 +18,9 @@ setup() {
     [ "$status" -ne 0 ]
     [[ "$output" == *"Invalid option:"* ]]
 }
+
+@test "[TEST] fails with invalid arg" {
+    run kubeready pods --dry
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Running: kubeready pods"* ]]
+} 
