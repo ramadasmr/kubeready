@@ -19,7 +19,7 @@ setup() {
     [[ "$output" == *"Invalid option:"* ]]
 }
 
-@test "[TEST] fails with invalid arg" {
+@test "[TEST] can execute in dry run mode" {
     run kubeready pods --dry
     [ "$status" -eq 0 ]
     [[ "$output" == *"Running: kubeready pods"* ]]
