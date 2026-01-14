@@ -15,7 +15,7 @@ Available Objects:
   --dry                         	Dry run, to show commands without executing
   -h, --help                            Show Help
 
-Options for pods,events,services :
+Options for pods, events, services :
   -n, -ns, --namespace <namespace>	Specify the namespace to use
 EOF
 }
@@ -144,13 +144,13 @@ if [[ "$#" -gt 0 ]]; then
             ;;
         esac
     else
-        # Trim whitspaces
+        # Trim whitespaces
         break
     fi
     done
     VALID_OBJECTS=("pods" "nodes" "deployment" "statefulset" "daemonset")
     if [[ ! " ${VALID_OBJECTS[*]} " =~ ${OBJECT} ]]; then
-        echo "MISSING: Specifiy a valid object type"
+        echo "MISSING: Specify a valid object type"
         echo ""
         found_wrong_command_args
     fi
