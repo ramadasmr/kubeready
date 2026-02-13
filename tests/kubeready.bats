@@ -23,4 +23,11 @@ setup() {
     run kubeready pods --dry
     [ "$status" -eq 0 ]
     [[ "$output" == *"Running: kubeready pods"* ]]
-} 
+}
+
+@test "[TEST] supports namespace flag with dry run" {
+    run kubeready pods -n default --dry
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Running: kubeready pods -n default"* ]]
+    [[ "$output" == *"DRY RUN: Skipping command execution"* ]]
+}
