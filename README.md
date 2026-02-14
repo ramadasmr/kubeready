@@ -114,3 +114,4 @@ To run the tests, use the `bats` binary included in the repository:
 ##### Ideas to Improve
 - Add support for additional resource types
 - Add unit tests or linting
+- Improve CI pipelines
